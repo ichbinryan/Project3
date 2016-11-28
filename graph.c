@@ -31,6 +31,7 @@ int permute(int * array, int nodes){
 }
 
 int generate_graph(char * file_name, int nodes, int edges){
+    srand(time(NULL));
     int permuted[MAX];
     int graph[MAX][MAX];
 
@@ -98,6 +99,11 @@ int generate_graph(char * file_name, int nodes, int edges){
             temp = to;
             to = from;
             from = temp;
+        }
+        else if(to == from){
+            while(to == from) {
+                to = ran(MAX);
+            }
         }
 
         while(graph[from][ind]!=-1){
