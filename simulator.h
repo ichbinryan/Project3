@@ -43,21 +43,24 @@ struct packet{
     int destination;
     int size;  //size is in bytes, can be up to 1,000,000 bytes 1mb
     int location; //-1 for on the wire, or integer for in router queue
+    int next_arrival_time;
+    int total_arrival_time;
 };
 
 struct router{
-    struct packet input[30];
-    struct packet output[30];
+    struct packet input_queue[30];
+    struct packet output_queue[30];
+    int input_num;
+    int output_num;
     int routing_table[MAX][MAX];
+    int num_edges;
+    int edges[MAX];
+    float edge_distance[MAX];
 };
 
 struct generated_graph{
     int nodes[150][100];
 };
-
-int generate_trip(struct source_destination pairs);
-int standard_uniform(int max);  //return an int from one to one thousand
-int generate_bandwidth(struct network net, int edges);
 
 
 #endif //PROJECT3_SIMULATOR_H

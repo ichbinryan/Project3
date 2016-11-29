@@ -19,7 +19,7 @@ int permute(int * array, int nodes);
 //struct graph generate_graph();
 int generate_graph(char * file_name, int nodes, int edges);
 //int write_to_file(int * graph[]);
-int connected();
+//int connected();
 int permute(int * gra, int size);
 
 

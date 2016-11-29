@@ -4,6 +4,20 @@
 
 #include "simulator.h"
 
+int generate_network_node_array(struct router * node, char * filename){
+    int size = 150;
+    int next_int;
+
+    FILE *f = fopen(filename, "r");
+    rewind(f);
+
+    while(fscanf(f, "%d", &next_int) == 1){
+        printf("test this: %d\n", next_int);
+    }
+    fclose(f);
+
+}
+
 int generate_trip(struct source_destination pairs){
     for(int i = 0; i < 20; i++){
         pairs.source[i]=-1;
@@ -88,6 +102,27 @@ void test(int size, struct network net){
     }
 } //end test this can be deleted
 
+void print_sample_node(struct router rout){
+    int i = 0;
+    printf("Node edges: ");
+    while(rout.num_edges>i){
+        printf("%d ", rout.edges[i]);
+        i++;
+    }
+
+}
+
+/**
+ * generates random bandwidth and prop delay;
+ * @param nodes
+ * @return
+ */
+int generate_delay(struct node * nodes){
+    for
+
+
+}
+
 int main(int argc, char * argv[]){
     struct generated_graph grph;
 
@@ -107,7 +142,7 @@ int main(int argc, char * argv[]){
     struct source_destination sd;
 
     srand(seed);
-    int num_edges = 6000;
+    int num_edges = 600;
     int try = generate_graph(filename, MAX, num_edges);
     generate_trip(sd);
 
@@ -117,6 +152,7 @@ int main(int argc, char * argv[]){
     int little[num_edges];
 
     //read file into arrays
+    struct router * nodes = malloc(150 * sizeof(struct router));
 
     FILE *file = fopen(filename, "r");
     int num1, num2 = 0;
@@ -124,32 +160,27 @@ int main(int argc, char * argv[]){
     fscanf(file, "%d", &num1);
     fscanf(file, "%d", &num2);
 
-    for(int i = 0; i<num_edges; i++){
-        fscanf(file, "%d", &little[i]);
-        fscanf(file, "%d", &big[i]);
-        //little[i] = num1;
-        //big[i] = num2;
+    for(int i = 0; i<150; i++){
+        nodes[i].num_edges = 0;
+        printf("num edge test %d\n", nodes[i].num_edges);
     }
-    rewind(file);
-
-
-    struct network net;
-
-    net.small = little; //also have generated graph.  need to choose one.
-    net.big = big;
-
     for(int i = 0; i<num_edges; i++){
-        for(int j = 0; j<num_edges; j++){
-            grph.nodes[]
-        }
+        fscanf(file, "%d %d", &little[i], &big[i]);
+        //fscanf(file, "%d", &big[i]);
+
+        printf("Little an big: %d %d\n", little[i], big[i]);
+
+        nodes[little[i]].edges[nodes[little[i]].num_edges] = big[i];
+        nodes[big[i]].edges[nodes[big[i]].num_edges] = little[i];
+        printf("set test: %d\n", nodes[little[i]].edges[nodes[little[i]].num_edges]);
+        nodes[little[i]].num_edges++;
+        nodes[big[i]].num_edges++; //need to remember to do both in all cases.
+        //our graph of nodes has now been generated using node struct.
+
     }
+    fclose(file);
 
-    /*test(1000, net);/**/
-
-    for(int i = 0; i < 1000; i++){
-        printf("%d . %d : ", net.small[i], net.big[i]);
-    }/**/
-    //next need to generate total propagation delay for the links on the network
+    print_sample_node(nodes[149]);
 
 
 } //end main

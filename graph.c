@@ -93,16 +93,16 @@ int generate_graph(char * file_name, int nodes, int edges){
         }
         from = ran(MAX);
         to = ran(MAX);
-        printf("from %d to %d placed %d\n", from, to, placed);
-
-        if(to<from){
-            temp = to;
-            to = from;
-            from = temp;
-        }
-        else if(to == from){
-            while(to == from) {
-                to = ran(MAX);
+        while(to == from || to<from) {
+            if (to == from) {
+                while (to == from) {
+                    to = ran(MAX);
+                }
+            }
+            if (to < from) {
+                temp = to;
+                to = from;
+                from = temp;
             }
         }
 
@@ -118,6 +118,7 @@ int generate_graph(char * file_name, int nodes, int edges){
             graph[from][ind] = to;
             placed++;
             printf(".\n");
+
         }
         ind = 0;
 
@@ -144,6 +145,8 @@ int generate_graph(char * file_name, int nodes, int edges){
             }
         }
     }/**/
+    fclose(f);
+    //generate bandwidth.
 
 }//end generate graph
 
