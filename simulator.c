@@ -118,7 +118,7 @@ void print_sample_node(struct router rout){
  * @return
  */
 int generate_delay(struct node * nodes){
-    for
+
 
 
 }
