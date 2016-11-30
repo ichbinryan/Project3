@@ -119,7 +119,7 @@ void print_sample_node(struct router rout){
  */
 int generate_delay(struct node * nodes){
 
-
+//TODO:Modularize some of main, it is getting big.
 
 }
 
@@ -142,7 +142,7 @@ int main(int argc, char * argv[]){
     struct source_destination sd;
 
     srand(seed);
-    int num_edges = 600;
+    int num_edges = 974;
     int try = generate_graph(filename, MAX, num_edges);
     generate_trip(sd);
 
@@ -176,10 +176,18 @@ int main(int argc, char * argv[]){
         nodes[little[i]].num_edges++;
         nodes[big[i]].num_edges++; //need to remember to do both in all cases.
         //our graph of nodes has now been generated using node struct.
+        //can add bandwidth/propagation delay here.
 
     }
     fclose(file);
 
+    //run djikstras on nodes
+
+    //build routing tables, each node only need the next router to go to
+
+    //begin scheduling of packets
+
+    //begin simulation
     print_sample_node(nodes[149]);
 
 
