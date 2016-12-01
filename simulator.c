@@ -3,6 +3,11 @@
 //
 
 #include "simulator.h"
+#include <limits.h>
+
+int graph[MAX][MAX];  //to build adjacency matrix.
+
+//easier to deal with in dijkstra
 
 int generate_network_node_array(struct router * node, char * filename){
     int size = 150;
@@ -16,6 +21,98 @@ int generate_network_node_array(struct router * node, char * filename){
     }
     fclose(f);
 
+}
+
+int dijkstras(struct router * nodes, struct router source){
+
+    int distances[MAX];
+    int nod[MAX];
+    int unvisited[MAX];
+
+
+
+    /*
+
+    for(int i = 0; i < MAX; i++){
+        for(int j = 0; j < MAX; j++){
+            graph[i][nodes[i].edges[j]] = nodes[i].edge_propagation_delay[j];
+        }
+    }
+
+    for(int i = 0; i < MAX; i++){
+        printf("%d: ", i);
+        for(int j = 0; j < MAX; j++){
+           printf("%d ", graph[i][j]);
+        }
+        printf("\n");
+    }
+
+    int big = INT_MAX;
+
+    int dist[MAX] = {big};
+    int prev[MAX] = {-1};
+
+    dist[source.id] = 0;*/
+
+    //int * queue = makeQueue(source);
+
+}
+
+void makeQueue(struct router s){
+    //use a copy of s
+    struct router v = s;
+    printf("S and Vs num edges - %d %d\n", s.num_edges, v.num_edges);
+    //v.id = 1000;
+    //printf("The id is %d\n", s.id);
+
+
+    int node[MAX] = {-1};
+    int length[MAX] = {-1};
+    int indices[MAX] = {-1};
+    int placed  = 0;
+    for(int i  = 0; i<=10; i++){
+        for(int j = 0; j < v.num_edges;j++) {
+            while (v.edge_propagation_delay[j] == i) {
+                length[placed] = i;
+                node[placed] = v.edges[j];
+                indices[placed] = j;
+                placed++;
+                j++;
+            }
+        }
+    }
+    for(int i = 0; i <10; i++){
+        printf("lenght: %d \n", length[i]);
+        printf("edges: %d\n", node[i]);
+        printf("indices: %d\n", indices[i]);
+    }
+
+    /*
+    for(int i = 0; i<10; i++){
+        for(int j = 0; j<v.num_edges; j++) {
+            while (v.edge_propagation_delay[j] == i) {
+                v.edges[placed] = v.edges[j];
+                v.edge_propagation_delay[placed] = i;
+                placed++;
+            }
+        }
+    }*/
+
+
+}
+
+
+
+int minDistance(int distance[], int set[]){
+    int min = 15;
+    int index = -1;
+    for(int i = 0; i<MAX; i++){
+        if(set[i] == 0 && distance[i]<min && distance[i] != -1){
+            min = distance[i];
+            index = i;
+        }
+    }
+    return index;
 }
 
 int generate_trip(struct source_destination pairs){
@@ -104,11 +201,19 @@ void test(int size, struct network net){
 
 void print_sample_node(struct router rout){
     int i = 0;
+    printf("Node ID: %d\n", rout.id);
     printf("Node edges: ");
-    while(rout.num_edges>i){
+    while(rout.num_edges>i){ //change to for loop
         printf("%d ", rout.edges[i]);
         i++;
     }
+    printf("\n");
+
+    printf("Node delay: ");
+    for(int j = 0; j<rout.num_edges; j++){
+        printf("%d ", rout.edge_propagation_delay[j]);
+    }
+    printf("\n");
 
 }
 
@@ -131,8 +236,8 @@ int main(int argc, char * argv[]){
         exit(-1);
     }
 
-    struct packet packets_on_wire[100000];
-    int packet_delay[1000000] = {-1};
+    //struct packet packets_on_wire[100000];
+    //int packet_delay[1000000] = {-1};
 
     char * filename = argv[1];
     int seed = atoi(argv[1]);
@@ -142,7 +247,7 @@ int main(int argc, char * argv[]){
     struct source_destination sd;
 
     srand(seed);
-    int num_edges = 974;
+    int num_edges = 600;
     int try = generate_graph(filename, MAX, num_edges);
     generate_trip(sd);
 
@@ -164,6 +269,11 @@ int main(int argc, char * argv[]){
         nodes[i].num_edges = 0;
         printf("num edge test %d\n", nodes[i].num_edges);
     }
+
+    int del = 0;
+
+    //we are setting properties of nodes and edges here.
+
     for(int i = 0; i<num_edges; i++){
         fscanf(file, "%d %d", &little[i], &big[i]);
         //fscanf(file, "%d", &big[i]);
@@ -173,6 +283,18 @@ int main(int argc, char * argv[]){
         nodes[little[i]].edges[nodes[little[i]].num_edges] = big[i];
         nodes[big[i]].edges[nodes[big[i]].num_edges] = little[i];
         printf("set test: %d\n", nodes[little[i]].edges[nodes[little[i]].num_edges]);
+        //inserting bandwidth and propagation delay
+        //propagation delay first
+        del = standard_uniform_interval(1, 10);
+        printf("delay generated %d\n", del);
+        nodes[little[i]].edge_propagation_delay[nodes[little[i]].num_edges] = del; //in seconds
+        nodes[big[i]].edge_propagation_delay[nodes[big[i]].num_edges] = del; //in seconds
+        nodes[little[i]].id = little[i];
+        nodes[big[i]].id = big[i];
+
+        //now bandwidth
+
+
         nodes[little[i]].num_edges++;
         nodes[big[i]].num_edges++; //need to remember to do both in all cases.
         //our graph of nodes has now been generated using node struct.
@@ -181,7 +303,7 @@ int main(int argc, char * argv[]){
     }
     fclose(file);
 
-    //run djikstras on nodes
+    //run dijkstras on nodes
 
     //build routing tables, each node only need the next router to go to
 
@@ -189,6 +311,21 @@ int main(int argc, char * argv[]){
 
     //begin simulation
     print_sample_node(nodes[149]);
+    //dijkstras(nodes, nodes[0]);
+
+    for(int i = 0; i < MAX; i++){
+        for(int j = 0; j < MAX; j++){
+            graph[i][nodes[i].edges[j]] = nodes[i].edge_propagation_delay[j];
+        }
+    }
+
+    for(int i = 0; i < MAX; i++){
+        printf("%d: ", i);
+        for(int j = 0; j < MAX; j++){
+            printf("%d ", graph[i][j]);
+        }
+        printf("\n");
+    }
 
 
 } //end main

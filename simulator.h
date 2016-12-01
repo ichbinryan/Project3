@@ -48,14 +48,16 @@ struct packet{
 };
 
 struct router{
+    int id;
     struct packet input_queue[30];
     struct packet output_queue[30];
     int input_num;
     int output_num;
-    int routing_table[MAX][MAX];
+    int routing_table[MAX];
     int num_edges;
     int edges[MAX];
-    float edge_distance[MAX];
+    int edge_bandwidth[MAX];
+    int edge_propagation_delay[MAX];
 };
 
 struct generated_graph{
