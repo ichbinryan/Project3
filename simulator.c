@@ -28,6 +28,9 @@ int dijkstras(struct router * nodes, struct router source){
     int distances[MAX];
     int nod[MAX];
     int unvisited[MAX];
+    int previous[MAX];
+    //at update set previous.
+    //previous will be the current node in the while loop.
 
 
 
