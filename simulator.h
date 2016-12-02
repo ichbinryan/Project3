@@ -54,8 +54,8 @@ struct router{
     int id;
     int is_source;  //is this a source?
     int is_destination; //is this a destination
-    struct packet input_queue[30]; //input and output queue
-    struct packet output_queue[30];
+    struct packet input_queue[20]; //input and output queue
+    struct packet output_queue[20];
     int input_delay;
     int input_start, input_end, input_elements;
     int output_start, output_end, output_elements;

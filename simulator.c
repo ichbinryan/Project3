@@ -10,10 +10,11 @@ int band_graph[MAX][MAX];
 //easier to deal with...
 struct router * nodes;
 struct source_destination sd;
-struct packet * wire;
+struct packet wire_arr[100];
 struct packet dummy;
+struct packet place_holder;
 
-int packet_to_wire(struct packet pack, struct packet wire_arr[]){
+int packet_to_wire(struct packet pack){
     printf("packet %d put on wire\n", pack.packet_id);
     for(int i = 0; i<1000; i++){
         if(wire_arr[i].packet_id != -1){
@@ -21,16 +22,17 @@ int packet_to_wire(struct packet pack, struct packet wire_arr[]){
         }
     }
 
+
 }
 
 struct packet generate_packet(int source, int destination){  //make a packet
     struct packet pack;
-    printf("Packet generated from %d to %d\n", source, destination);
+    //printf("Packet generated from %d to %d\n", source, destination);
 
     nodes[source].my_generated_packets++;
     //pack = malloc(1 * sizeof( struct packet ) );
     pack.packet_id = totes_generated_packets;
-    printf("pack id %d\n", totes_generated_packets);
+    //printf("pack id %d\n", totes_generated_packets);
     pack.source = source;
     pack.destination = destination;
     pack.next_arrival_time = nodes[source].edge_propagation_delay[nodes[source].routing_table[destination]];
@@ -38,7 +40,7 @@ struct packet generate_packet(int source, int destination){  //make a packet
     int band = nodes[source].routing_table[destination];
 
     pack.queue_wait_time = (pack.size/band_graph[source][nodes[source].routing_table[destination]])+1;
-    printf("bandwidth test %d\n", pack.queue_wait_time );
+    //printf("bandwidth test %d\n", pack.queue_wait_time );
 
     totes_generated_packets++;
     //try to insert into queue now at return location.
@@ -47,21 +49,21 @@ struct packet generate_packet(int source, int destination){  //make a packet
 
 }
 
-int in_queue(struct router node, struct packet pack){ //add packet to input router.
-    int id = node.id;
+int in_queue(int id, struct packet p){ //add packet to input router.
 
-    if(node.input_elements>20){
-        printf("%d dropped packet %d\n", node.id, pack.packet_id);
+    if(nodes[id].input_elements>20){
+        printf("%d dropped packet %d\n", nodes[id].id, p.packet_id);
         nodes[id].my_dropped_packets++;
         totes_dropped_packets++;
         //set packet location to null
         //free(pack);
     }
     else{
-        printf("elements in input queue %d\n", node.input_elements);
-        nodes[id].input_queue[node.input_end];
-        nodes[id].input_end = node.input_end+1;
-        nodes[id].input_end = node.input_end%20;
+        printf("elements in input queue %d\n", nodes[id].input_elements);
+        printf("with wait time %d\n", place_holder.queue_wait_time);
+        nodes[id].input_queue[nodes[id].input_end] = p;
+        nodes[id].input_end = nodes[id].input_end+1;
+        nodes[id].input_end = nodes[id].input_end%20;
         nodes[id].input_elements++;
     }
 
@@ -69,6 +71,7 @@ int in_queue(struct router node, struct packet pack){ //add packet to input rout
 
 int in_to_out(struct router node){ //transfer from input to output queue
     printf("transferring packet %d at node %d\n", node.input_queue[node.input_start], node.id);
+    node.input_elements--;
     if(node.output_elements>=20){
         struct packet p = node.input_queue[node.input_start];
         printf("%d dropped packet %d\n", node.id, p.packet_id);
@@ -77,10 +80,12 @@ int in_to_out(struct router node){ //transfer from input to output queue
     }
     else{
         node.output_queue[node.output_end-1] = node.input_queue[node.input_start];
-        node.input_start++;
-        node.input_end++;
+        node.input_start = (node.input_start+1)%20;
+        node.output_end++;
+        node.output_end= node.output_end%20;
         node.output_elements++;
-        printf("ouput elements %d\n", node.output_elements);
+        printf("output elements %d\n", node.output_elements);
+
     }
 }
 
@@ -334,6 +339,14 @@ void print_sample_node(struct router rout){
         printf("%d %d \n", i, rout.routing_table[i]);
     }
 
+    printf("Input queue\n");
+    for(int i = 0; i<20; i++){
+        printf("-> id: %d, wait %d, source: %d, destination: %d\n",
+               rout.input_queue[i].packet_id, rout.input_queue[i].queue_wait_time,
+                rout.input_queue[i].source, rout.input_queue[i].destination);
+
+    }
+    printf("\n");
 }
 
 /**
@@ -487,19 +500,22 @@ int main(int argc, char * argv[]){
     //in_queue(nodes[0], pack);
 
     int rand;
+    //moved = 0;
 
     //begin simulation
-    for(int time = 0; time<1000; time++){
+    for(int time = 0; time<10; time++){
 
 
-        for(int i  = 0; i<10; i++){
+        for(int i  = 0; i<1000; i++){
             rand = ran(40);
             printf("rand is %d\n", rand);
             if(rand<20){
                 printf("test s and d %d %d\n", sd.source[rand], sd.destination[rand]);
-                p = generate_packet(sd.source[rand], sd.destination[rand]);
-                printf("after packet generation %d %d %d\n", p.packet_id, p.source, p.destination);
-                in_queue(nodes[sd.source[rand]], p);
+                place_holder = generate_packet(sd.source[rand], sd.destination[rand]);
+                printf("after packet generation %d %d %d\n", place_holder.packet_id, place_holder.source, place_holder.destination);
+                printf("with attributes wait time %d and size %d\n", place_holder.queue_wait_time, place_holder.size);
+                in_queue(nodes[sd.source[rand]].id, place_holder);
+                print_sample_node(nodes[sd.source[rand]]);
             }
             else{
                 printf("next time\n");
@@ -507,23 +523,23 @@ int main(int argc, char * argv[]){
         }// maybe generate packets
 
         for(int i = 0; i<MAX; i++){
+            //printf("test wait time %d\n",nodes[i].input_queue[nodes[i].input_start].queue_wait_time);
+            if(nodes[i].input_queue[0].queue_wait_time>0){
 
-            if(nodes[i].input_start < nodes[i].input_end &&
-                    nodes[i].input_queue[nodes[i].input_start].packet_id != -1){
-
-                nodes[i].input_queue[nodes[i].input_start].queue_wait_time--;
+                nodes[i].input_queue[0].queue_wait_time--;
 
                 printf("Wait time for packet at node %d is %d\n", nodes[i].id,
                        nodes[i].input_queue[nodes[i].input_start].queue_wait_time);
             }
         }
 
-        //send to wire first.
+      /*  //send to wire first.
         for(int i = 0; i<MAX; i++){
             //need to make sure every packet released is replaced with dummy;
 
             if(nodes[i].output_elements>0){
-                packet_to_wire(nodes[i].output_queue[nodes[i].output_start], wire_arr);
+                packet_to_wire(nodes[i].output_queue[nodes[i].output_start]);
+                nodes[i].output_start = (nodes[i].output_start+1)%20;
             }
         }
 
@@ -537,11 +553,12 @@ int main(int argc, char * argv[]){
                 printf("packet at %d with id waiting time %d\n", j, nodes[j].input_queue[nodes[j].input_start].queue_wait_time);
                 in_to_out(nodes[j]);
             }
-        }
+        }/**/
 
 
     }
     printf("Total packets generated: %d\n", totes_generated_packets);
     printf("Total packets dropped: %d\n", totes_dropped_packets);
     printf("Total packets arrived %d\n", totes_arrived_packets);
+    //printf("Total moved %d\n", moved);*/
 } //end main
