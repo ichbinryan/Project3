@@ -1,11 +1,11 @@
 /**
  * file for graph generation.
- * Generates graph, then tests for connectedness
- * If graph is not connected, regenerates.
+ * Generates graph, then tests for connectedness*
+ * *edit, no longer tests.  the way graph is generated should ensure connectedness.
  */
 #include "graph.h"
 
-int ran(int k){
+int ran(int k){ //rand is currently using seed from command line input from sim.c
 
     return rand() % k;
 
@@ -31,7 +31,7 @@ int permute(int * array, int nodes){
 }
 
 int generate_graph(char * file_name, int nodes, int edges){
-    srand(time(NULL));
+    //srand(time(NULL));
     int permuted[MAX];
     int graph[MAX][MAX];
 
