@@ -159,7 +159,7 @@ int main(int argc, char * argv[]){
     srand(seed);
     int edges = 150;
     printf("edges %d\n", edges);
-    int extra = ran(150);
+    int extra = ran(500);
     printf("We are generating %d extra\n", extra);
     edges = edges+extra;
     generate_graph("file.txt", 150, edges);
