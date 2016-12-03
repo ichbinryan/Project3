@@ -11,4 +11,12 @@ The simulator will begin randomly generating packets and sending thim from a set
 Each node has a input and output queue of 20 packets.  If these are filled, the router will drop any other incoming
 packet.  Any packet that has been generated exists in a nodes queue or "on the wire" (the wire is a struct packet array).
 
+See the .h files for a description of the structs implemented.
 
+Use make all to compile each in their respective directories.
+
+graph
+./graph.out <String: input graph filename><random num seed>
+
+simulator
+./simulator.out <String: input graph filename> <int: seed for number generator>
