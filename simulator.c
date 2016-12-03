@@ -6,39 +6,58 @@
 #include <limits.h>
 
 int graph[MAX][MAX];  //to build adjacency matrix.
-int band_graph[MAX][MAX];
+int band_graph[MAX][MAX]; //bandwidth graph holder
 //easier to deal with...
-struct router * nodes;
-struct source_destination sd;
-struct packet wire_arr[1000];
-struct packet dummy;
-struct packet place_holder;
+struct router * nodes; //This will be used to access built nodes throughout the program
+//graph and nodes are used similarly, but graph is used mostly in dijkstras (easier for me to implement
+//on an adjacency matrix.
+struct source_destination sd;//structure for holding our 20 source destination pairs
+struct packet wire_arr[1000]; //will hold all packets in transit over the wire
+struct packet dummy; //I have been using dummy to mark empty queue spots.  its id is -1 and is used to id these spots
+struct packet place_holder; //used to get packets off the stack.  Can probably be gotten rid of
 int totes_generated_packets; //also packet id
-int totes_arrived_packets;
-int totes_dropped_packets;
+int totes_arrived_packets; //total packets that have arrived
+int totes_dropped_packets; //total packets dropped
 
-void print_sample_node(struct router rout);
+void print_sample_node(struct router rout); //used to debug.
+/**
+ * moves a packet from the first spot in a nodes output queue to the wire for transmission.
+ * uses the index of the node to find necessary information.
+ * @param node_id
+ * @return
+ */
 
-int packet_to_wire(int node_id){ //Need to set next hop and arrival
+int ran(int k){ //rand is currently using seed from command line input from sim.c
+
+    return rand() % k;
+
+}
+
+int packet_to_wire(int node_id){
     printf("packet %d put on wire!\n", place_holder.packet_id);
     int next = nodes[node_id].routing_table[place_holder.destination];
-    place_holder.next_hop = next;
-    place_holder.next_arrival_time = graph[place_holder.location][place_holder.next_hop];
+    place_holder.next_hop = next; //our next destination
+    place_holder.next_arrival_time = graph[place_holder.location][place_holder.next_hop]; //find propagation delay.
     printf("This packet has %d wait time on wire going to %d\n", place_holder.next_arrival_time, place_holder.next_hop);
     int i = 0;
     while(1) {
         if (wire_arr[i].packet_id == -1) {
             printf("wire index %d\n", i);
-            wire_arr[i] = place_holder;
+            wire_arr[i] = place_holder; //find an empty spot in our wire array to place.
             break;
         }
         i++;
     }
     nodes[node_id].output_queue[nodes[node_id].output_start] = dummy;
     nodes[node_id].output_start = (nodes[node_id].output_start+1)%20;
-    nodes[node_id].output_elements--;
+    nodes[node_id].output_elements--; //delete packet from output queue
 }
 
+/**
+ * destroy packet gets rid of a packet in an input queue when it arrives or other situations occur.
+ * This is no longer in use.
+ * @param node_id
+ */
 void destroy_packet(int node_id){
     nodes[node_id].input_queue[nodes[node_id].input_start] = dummy;
     nodes[node_id].input_start++;
@@ -46,6 +65,12 @@ void destroy_packet(int node_id){
     nodes[node_id].input_elements--;
 }
 
+/**
+ * Generates and returns a packet
+ * @param source
+ * @param destination
+ * @return a packet with given source/dest and random size
+ */
 struct packet generate_packet(int source, int destination){  //make a packet
     struct packet pack;
     //printf("Packet generated from %d to %d\n", source, destination);
@@ -58,7 +83,7 @@ struct packet generate_packet(int source, int destination){  //make a packet
     pack.destination = destination;
     pack.next_arrival_time = nodes[source].edge_propagation_delay[nodes[source].routing_table[destination]];
     pack.size = ran(1000000);
-    int band = nodes[source].routing_table[destination];
+    int band = nodes[source].routing_table[destination]; //can I get rid of this?
 
     pack.queue_wait_time = (pack.size/band_graph[source][nodes[source].routing_table[destination]])+1;
     //printf("bandwidth test %d\n", pack.queue_wait_time );
@@ -70,6 +95,13 @@ struct packet generate_packet(int source, int destination){  //make a packet
 
 }
 
+/**
+ * inserts the packet p into the router with id id.
+ * Return value is no longer used.
+ * @param id
+ * @param p
+ * @return
+ */
 int in_queue(int id, struct packet p){ //add packet to input router.
 
     printf("from source %d entered in queue %d \n", p.source);
@@ -111,6 +143,12 @@ int in_queue(int id, struct packet p){ //add packet to input router.
 
 }
 
+/**
+ * Moves a packet from input to output router after the processing delay has been completed.
+ * @param id
+ * @return
+ */
+
 int in_to_out(int id){ //transfer from input to output queue
 
 
@@ -139,23 +177,41 @@ int in_to_out(int id){ //transfer from input to output queue
     }
 }
 
+/**
+ * used in place of queue for dijkstras.
+ * finds the node we should next visit.
+ * @param dist
+ * @param visited
+ * @return
+ */
+
 int minDistance(int dist[], int visited[])
 {
     int min_dist = INT_MAX;
     int min_location;
 
-    for (int v = 0; v < MAX; v++)
-        if (visited[v] == 0 && dist[v] <= min_dist)
-            min_dist = dist[v], min_location = v;
+    for (int i = 0; i < MAX; i++)
+        if (visited[i] == 0 && dist[i] <= min_dist) {
+            min_dist = dist[i];
+            min_location = i;
+        }
 
     return min_location;
 }
 
 
-//takes global adjacency list, calculates shortest path
-//this function will set the outgoing node for given node to source
-//a little backward than one might expect.
-//
+
+
+
+/**
+ * takes global adjacency list, calculates shortest path
+ * this function will set the outgoing node for given node to source
+ * a little backward than one might expect.
+ *
+ * That is if we run on node with id = 1, we find every other nodes next hop
+ * to 1.
+ * @param source
+ */
 void dijkstra_previous(int source)
 {
     int previous[MAX];  //previous[i] will be the outgoing node for i to node source.
@@ -244,7 +300,7 @@ int generate_network_node_array(struct router * node, char * filename){ //this i
 
 }
 
-void makeQueue(struct router s){
+void makeQueue(struct router s){ //this is no longer used
     //use a copy of s
     struct router v = s;
     printf("S and Vs num edges - %d %d\n", s.num_edges, v.num_edges);
@@ -273,6 +329,11 @@ void makeQueue(struct router s){
         printf("indices: %d\n", indices[i]);
     }
 }
+
+/**
+ * generates source destination pairs.
+ * @return
+ */
 
 
 int generate_trip(){
@@ -335,6 +396,14 @@ int standard_uniform(int max){ //for
     return y;
 } //end standard_uniform
 
+
+/**
+ * used to set various random values
+ * (in some places, ran from graph.h is also used.
+ * @param a min
+ * @param b max
+ * @return
+ */
 int standard_uniform_interval(int a, int b){
     float u = (float) rand()/RAND_MAX;
     int y = (int) (a + u * (b-a));
@@ -342,7 +411,7 @@ int standard_uniform_interval(int a, int b){
 } //end standard_uniform_interval
 
 
-int generate_bandwidth(struct network net, int edges){
+int generate_bandwidth(struct network net, int edges){ //no longer used
 
     for(int i = 0; i < edges; i++){
         net.bandwidth[i] = standard_uniform_interval(1, 10);
@@ -350,17 +419,29 @@ int generate_bandwidth(struct network net, int edges){
 
 } //end generate_bandwidth
 
-void test(int size, struct network net){
+void test(int size, struct network net){//no longer used
     for(int i = 0; i < 1000; i++){
         net.big[i] = -1;
     }
 } //end test this can be deleted
+
+/**
+ * used for testing
+ * prints the information of a given packet
+ * @param pack
+ */
 
 void print_sample_packet(struct packet pack){
     printf("Packet id %d\n", pack.packet_id);
 
     printf("Source: %d  Destination: %d\n", pack.source, pack.destination);
 }
+
+/**
+ * prints a sample node
+ * used for debugging
+ * @param rout
+ */
 
 void print_sample_node(struct router rout){
     int i = 0;
@@ -441,14 +522,23 @@ int main(int argc, char * argv[]){
 
     //seed = 2;
 
-
-
-
+    //seed random number generator
 
     srand(seed);
-    int num_edges = 200;
-    int try = generate_graph(filename, MAX, num_edges);
-    generate_trip(sd);
+    int num_edges; //need to randomize. edge num.
+    //int try = generate_graph(filename, MAX, num_edges); //generate our adjacency matrix
+    generate_trip(sd); //generate our source destination pairs
+
+    FILE *file1 = fopen(filename, "r");
+    int first, second = 0;
+
+    fscanf(file1, "%d", &first);
+    fscanf(file1, "%d", &second);
+
+    fclose(file1);
+
+    num_edges = second;
+    printf("number of edges %d\n", num_edges);
 
     //edges information
     //this is my network layer
@@ -666,6 +756,8 @@ int main(int argc, char * argv[]){
         //check wire to see if arrived;
 
     }//end of simulation for
+
+    printf("Our graph has %d nodes and %d edges\n", 150, num_edges);
 
     printf("Total packets generated: %d\n", totes_generated_packets-1);
     printf("Total packets dropped: %d\n", totes_dropped_packets);

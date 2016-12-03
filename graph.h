@@ -14,6 +14,7 @@
 int num_nodes;
 int num_edges;
 
+char * filename = "file.txt";
 int ran(int k);
 int permute(int * array, int nodes);
 //struct graph generate_graph();

@@ -150,4 +150,19 @@ int generate_graph(char * file_name, int nodes, int edges){
 
 }//end generate graph
 
+int main(int argc, char * argv[]){
+    if(argc<2 || atoi(argv[1])<0){
+        printf("USAGE: ./graph.out <number to seed random number greater than 0>");
+        exit(-1);
+    }
+    int seed = atoi(argv[1]);
+    srand(seed);
+    int edges = 150;
+    printf("edges %d\n", edges);
+    int extra = ran(150);
+    printf("We are generating %d extra\n", extra);
+    edges = edges+extra;
+    generate_graph("file.txt", 150, edges);
+}
+
 
