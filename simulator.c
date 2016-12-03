@@ -10,19 +10,40 @@ int band_graph[MAX][MAX];
 //easier to deal with...
 struct router * nodes;
 struct source_destination sd;
-struct packet wire_arr[100];
+struct packet wire_arr[1000];
 struct packet dummy;
 struct packet place_holder;
+int totes_generated_packets; //also packet id
+int totes_arrived_packets;
+int totes_dropped_packets;
 
-int packet_to_wire(struct packet pack){
-    printf("packet %d put on wire\n", pack.packet_id);
-    for(int i = 0; i<1000; i++){
-        if(wire_arr[i].packet_id != -1){
-            wire_arr[i] = pack;
+void print_sample_node(struct router rout);
+
+int packet_to_wire(int node_id){ //Need to set next hop and arrival
+    printf("packet %d put on wire!\n", place_holder.packet_id);
+    int next = nodes[node_id].routing_table[place_holder.destination];
+    place_holder.next_hop = next;
+    place_holder.next_arrival_time = graph[place_holder.location][place_holder.next_hop];
+    printf("This packet has %d wait time on wire going to %d\n", place_holder.next_arrival_time, place_holder.next_hop);
+    int i = 0;
+    while(1) {
+        if (wire_arr[i].packet_id == -1) {
+            printf("wire index %d\n", i);
+            wire_arr[i] = place_holder;
+            break;
         }
+        i++;
     }
+    nodes[node_id].output_queue[nodes[node_id].output_start] = dummy;
+    nodes[node_id].output_start = (nodes[node_id].output_start+1)%20;
+    nodes[node_id].output_elements--;
+}
 
-
+void destroy_packet(int node_id){
+    nodes[node_id].input_queue[nodes[node_id].input_start] = dummy;
+    nodes[node_id].input_start++;
+    nodes[node_id].input_start = nodes[node_id].input_start%20;
+    nodes[node_id].input_elements--;
 }
 
 struct packet generate_packet(int source, int destination){  //make a packet
@@ -51,7 +72,10 @@ struct packet generate_packet(int source, int destination){  //make a packet
 
 int in_queue(int id, struct packet p){ //add packet to input router.
 
+    printf("entered in queue");
+
     if(nodes[id].input_elements>20){
+        //print_sample_node(nodes[id]);
         printf("%d dropped packet %d\n", nodes[id].id, p.packet_id);
         nodes[id].my_dropped_packets++;
         totes_dropped_packets++;
@@ -59,32 +83,43 @@ int in_queue(int id, struct packet p){ //add packet to input router.
         //free(pack);
     }
     else{
-        printf("elements in input queue %d\n", nodes[id].input_elements);
+
         printf("with wait time %d\n", place_holder.queue_wait_time);
+        p.location = id;
         nodes[id].input_queue[nodes[id].input_end] = p;
         nodes[id].input_end = nodes[id].input_end+1;
         nodes[id].input_end = nodes[id].input_end%20;
         nodes[id].input_elements++;
+
+        printf("elements in input queue %d\n", nodes[id].input_elements);
     }
 
 }
 
-int in_to_out(struct router node){ //transfer from input to output queue
-    printf("transferring packet %d at node %d\n", node.input_queue[node.input_start], node.id);
-    node.input_elements--;
-    if(node.output_elements>=20){
-        struct packet p = node.input_queue[node.input_start];
-        printf("%d dropped packet %d\n", node.id, p.packet_id);
+int in_to_out(int id){ //transfer from input to output queue
+
+
+    printf("transferring packet %d at node %d\n", nodes[id].input_queue[nodes[id].input_start].packet_id
+            , nodes[id].id);
+
+    place_holder = nodes[id].input_queue[nodes[id].input_start];
+    nodes[id].input_queue[nodes[id].input_start] = dummy;
+    nodes[id].input_start = (nodes[id].input_start+1)%20;
+    nodes[id].input_elements--;
+
+    if(nodes[id].output_elements>=20){
+
+        printf("%d dropped packet %d\n", nodes[id].id, place_holder.packet_id);
         //if(node.input_start<=node.input_end)
         //free(p);
     }
     else{
-        node.output_queue[node.output_end-1] = node.input_queue[node.input_start];
-        node.input_start = (node.input_start+1)%20;
-        node.output_end++;
-        node.output_end= node.output_end%20;
-        node.output_elements++;
-        printf("output elements %d\n", node.output_elements);
+        nodes[id].output_queue[nodes[id].output_end] = place_holder;
+        nodes[id].output_end++;
+        nodes[id].output_end= nodes[id].output_end%20;
+        nodes[id].output_elements++;
+
+        printf("output elements %d\n", nodes[id].output_elements);
 
     }
 }
@@ -340,10 +375,21 @@ void print_sample_node(struct router rout){
     }
 
     printf("Input queue\n");
+    printf("Input start %d and input end %d and total elements %d\n", rout.input_start, rout.input_end, rout.input_elements);
     for(int i = 0; i<20; i++){
+
         printf("-> id: %d, wait %d, source: %d, destination: %d\n",
                rout.input_queue[i].packet_id, rout.input_queue[i].queue_wait_time,
                 rout.input_queue[i].source, rout.input_queue[i].destination);
+
+    }
+
+    printf("Output queue\n");
+    printf("Output start %d and Output end %d and total elements %d\n", rout.output_start, rout.output_end, rout.output_elements);
+    for(int i = 0; i<20; i++){
+        printf("-> id: %d, wait %d, source: %d, destination: %d\n",
+               rout.output_queue[i].packet_id, rout.output_queue[i].queue_wait_time,
+               rout.output_queue[i].source, rout.output_queue[i].destination);
 
     }
     printf("\n");
@@ -363,6 +409,7 @@ int generate_delay(struct node * nodes){
 int main(int argc, char * argv[]){
     struct generated_graph grph;
     struct packet p;
+    totes_generated_packets = 1;
 
     dummy.packet_id = -1;
 
@@ -381,6 +428,8 @@ int main(int argc, char * argv[]){
 
 
 
+
+
     srand(seed);
     int num_edges = 200;
     int try = generate_graph(filename, MAX, num_edges);
@@ -394,9 +443,19 @@ int main(int argc, char * argv[]){
     //read file into arrays
     nodes = malloc(150 * sizeof(struct router));
     //wire  = malloc(200 * sizeof(struct packets));
-    struct packet wire_arr[1000];
-    for(int i = 0; i<100; i++){
+    //struct packet wire_arr[1000];
+    for(int i = 0; i<1000; i++){
         wire_arr[i]=dummy;
+    }
+
+    //initialize all router
+    for(int i = 0; i < MAX; i++){
+        nodes[i].input_start = 0;
+        nodes[i].input_end = 0;
+        nodes[i].output_start = 0;
+        nodes[i].output_end = 0;
+        nodes[i].input_start = 0;
+        nodes[i].input_end = 0;
     }
 
     FILE *file = fopen(filename, "r");
@@ -405,17 +464,13 @@ int main(int argc, char * argv[]){
     fscanf(file, "%d", &num1);
     fscanf(file, "%d", &num2);
 
-    for(int i = 0; i<150; i++){
+    for(int i = 0; i<MAX; i++){
         nodes[i].num_edges = 0;
         printf("num edge test %d\n", nodes[i].num_edges);
     }
 
     int del = 0;
     int bandwidth = 0;
-
-
-
-
 
 
     //building nodes
@@ -463,7 +518,7 @@ int main(int argc, char * argv[]){
     //begin scheduling of packets
 
     //begin simulation
-    print_sample_node(nodes[149]);
+    //print_sample_node(nodes[149]);
     //dijkstras(nodes, nodes[0]);
 
     for(int i = 0; i < MAX; i++){
@@ -490,11 +545,11 @@ int main(int argc, char * argv[]){
         printf("\n");
     }
 
-    print_sample_node(nodes[0]);
+    //print_sample_node(nodes[0]);
     for(int i = 0; i < MAX; i++) {
         dijkstra_previous(i);
     }
-    print_sample_node(nodes[0]);
+    //print_sample_node(nodes[0]);
 
     //struct packet pack = generate_packet(0, 10);
     //in_queue(nodes[0], pack);
@@ -503,24 +558,27 @@ int main(int argc, char * argv[]){
     //moved = 0;
 
     //begin simulation
-    for(int time = 0; time<10; time++){
+    for(int time = 0; time<10000; time++){
 
 
-        for(int i  = 0; i<1000; i++){
+        for(int i  = 0; i<40; i++){
             rand = ran(40);
-            printf("rand is %d\n", rand);
+            //printf("rand is %d\n", rand);
             if(rand<20){
-                printf("test s and d %d %d\n", sd.source[rand], sd.destination[rand]);
+                //printf("test s and d %d %d\n", sd.source[rand], sd.destination[rand]);
                 place_holder = generate_packet(sd.source[rand], sd.destination[rand]);
-                printf("after packet generation %d %d %d\n", place_holder.packet_id, place_holder.source, place_holder.destination);
-                printf("with attributes wait time %d and size %d\n", place_holder.queue_wait_time, place_holder.size);
+                //printf("after packet generation %d %d %d\n", place_holder.packet_id, place_holder.source, place_holder.destination);
+                //printf("with attributes wait time %d and size %d\n", place_holder.queue_wait_time, place_holder.size);
                 in_queue(nodes[sd.source[rand]].id, place_holder);
-                print_sample_node(nodes[sd.source[rand]]);
+                //print_sample_node(nodes[sd.source[rand]]);
             }
             else{
-                printf("next time\n");
+                //printf("next time\n");
             }
         }// maybe generate packets
+
+        //for all packets, decrease packet wait time
+        //if time hits zero or less, send to output queue
 
         for(int i = 0; i<MAX; i++){
             //printf("test wait time %d\n",nodes[i].input_queue[nodes[i].input_start].queue_wait_time);
@@ -528,37 +586,76 @@ int main(int argc, char * argv[]){
 
                 nodes[i].input_queue[0].queue_wait_time--;
 
-                printf("Wait time for packet at node %d is %d\n", nodes[i].id,
-                       nodes[i].input_queue[nodes[i].input_start].queue_wait_time);
+               // printf("Wait time for packet at node %d is %d\n", nodes[i].id,
+                 //      nodes[i].input_queue[nodes[i].input_start].queue_wait_time);
             }
         }
 
-      /*  //send to wire first.
-        for(int i = 0; i<MAX; i++){
-            //need to make sure every packet released is replaced with dummy;
-
-            if(nodes[i].output_elements>0){
-                packet_to_wire(nodes[i].output_queue[nodes[i].output_start]);
-                nodes[i].output_start = (nodes[i].output_start+1)%20;
+        for(int i = 0; i < 1000; i++){
+            if(wire_arr[i].next_arrival_time > 0){
+                wire_arr[i].next_arrival_time--;
+            }
+            if(wire_arr[i].next_arrival_time == 0 && wire_arr[i].packet_id != -1){
+                in_queue(wire_arr[i].next_hop, wire_arr[i]);
+                wire_arr[i] = dummy;
             }
         }
 
-        //for all packets, decrease packet wait time
-        //if time hits zero or less, send to output queue
+        printf("current wire: ");
+        for(int i = 0; i < 20; i++){
+            printf("-- packet ID %d wait time %d and next hop %d\n", wire_arr[i].packet_id, wire_arr[i].next_arrival_time, wire_arr[i].next_hop);
+        }
+        //print_sample_node(nodes[132]);
 
 
         //if we are done, send to output queue
         for(int j = 0; j<MAX; j++){
-            if(nodes[j].input_queue[nodes[j].input_start].queue_wait_time<=0){
-                printf("packet at %d with id waiting time %d\n", j, nodes[j].input_queue[nodes[j].input_start].queue_wait_time);
-                in_to_out(nodes[j]);
+            if(nodes[j].input_queue[nodes[j].input_start].queue_wait_time<=0 &&
+                    nodes[j].input_queue[nodes[j].input_start].packet_id!=0){
+                if(nodes[j].input_queue[nodes[j].input_start].destination == j){
+                    totes_arrived_packets++;
+                    destroy_packet(nodes[j].input_queue[nodes[j].input_start].destination); //destroy this packet.
+                }
+                else {
+
+                    printf("packet at %d with id waiting time %d\n", j,
+                           nodes[j].input_queue[nodes[j].input_start].queue_wait_time);
+                    in_to_out(j);
+                }
+                //print_sample_node(nodes[j]);
             }
         }/**/
 
+        //send to wire first?
+        for(int i = 0; i<MAX; i++){
+            //need to make sure every packet released is replaced with dummy;
 
-    }
-    printf("Total packets generated: %d\n", totes_generated_packets);
+            if(nodes[i].output_elements>0){
+                //print_sample_node(nodes[i]);
+                //printf("the output from %d is %d index.\n", i, nodes[i].output_start);
+                place_holder = nodes[i].output_queue[nodes[i].output_start];
+                //print_sample_node(nodes[i]);
+                packet_to_wire(i);
+                //nodes[i].output_start = (nodes[i].output_start+1)%20;
+            }
+        }/**/
+
+        //check wire to see if arrived;
+        for(int i = 0; i<1000; i++){
+            //printf("are we there yet\n");
+            if(wire_arr[i].next_arrival_time == 0 && wire_arr[i].packet_id != -1){
+                printf("packet coming off wire\n");
+                in_queue(wire_arr[i].next_hop, wire_arr[i]);
+                int hop = wire_arr[i].next_hop;
+                printf("Packet %d should have been in queueued at %d or dropped\n",  wire_arr[i].packet_id, hop);
+                //print_sample_node(nodes[hop]);
+            }
+        }/**/
+    }//end of simulation for
+
+    printf("Total packets generated: %d\n", totes_generated_packets-1);
     printf("Total packets dropped: %d\n", totes_dropped_packets);
-    printf("Total packets arrived %d\n", totes_arrived_packets);
+    printf("Total packets arrived: %d\n", totes_arrived_packets);
+
     //printf("Total moved %d\n", moved);*/
 } //end main

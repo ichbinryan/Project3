@@ -13,9 +13,7 @@
 
 //struct router routers[MAX];
 
-int totes_generated_packets; //also packet id
-int totes_arrived_packets;
-int totes_dropped_packets;
+
 
 struct source_destination{  //randomly generated source destination pairs
     int source[20];
@@ -40,14 +38,16 @@ struct source{  //redistribute into router?
 
 struct packet{
     int packet_id;
-    int source;
+    int source; //routing information
     int destination;
+    int next_hop;
     int size;  //size is in bytes, can be up to 1,000,000 bytes 1mb
     int location; //-1 for on the wire, or integer for in router queue
-    int queue_wait_time;
+    int queue_wait_time;//queue delay + size/bandwidth(roundedup)
     int next_arrival_time;
+    int wire_wait_time;//bandwidth factor for reception
     int total_arrival_time;
-    int left_in_queue; //queue delay + size/bandwidth(roundedup)
+
 };
 
 struct router{
